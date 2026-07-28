@@ -16,6 +16,7 @@ byte LecturaUID[4]; 				// crea array para almacenar el UID leido
 //Protoypes:
 unsigned int hashing(byte key[ARRAY_SIZE]);
 void search(byte lectura[ARRAY_SIZE]);
+//void countUsers();
 
 //Users node structure
 typedef struct userInfo
@@ -41,10 +42,10 @@ void setup()
 
   //Register users:
   // TODO: Crear variables temporales para UID's
-  byte key1[ARRAY_SIZE] = {0xC1, 0x2F, 0xD6, 0x2E};
-  byte key2[ARRAY_SIZE] = {0xAF, 0x4A, 0xD2, 0xA1};
-  byte key3[ARRAY_SIZE] = {0x79, 0xC7, 0x00, 0x7F}; // correct user
-  byte key4[ARRAY_SIZE] = {0x79, 0xC7, 0x00, 0x6F};
+  const byte key1[ARRAY_SIZE] = {0xC1, 0x2F, 0xD6, 0x2E};
+  const byte key2[ARRAY_SIZE] = {0xAF, 0x4A, 0xD2, 0xA1};
+  const byte key3[ARRAY_SIZE] = {0x79, 0xC7, 0x00, 0x7F}; // correct user
+  const byte key4[ARRAY_SIZE] = {0x79, 0xC7, 0x00, 0x6F};
 
   memcpy(users[0].UID, key1, 4);
   memcpy(users[1].UID, key2, 4);
@@ -61,10 +62,7 @@ void setup()
   {
     int hash;
     hash = hashing(users[i].UID);
-    //Serial.print("User: ");
-    //Serial.print(i+1);
-    //Serial.print("  | Hash: ");
-    //Serial.println(hash);
+
     //Create a node
     userInfo *u = (userInfo *)malloc(sizeof(userInfo)); //Type casting - malloc retorna un generic pointer
     if (u == NULL){
@@ -79,19 +77,25 @@ void setup()
     //TODO: Add prepeding and avoid memory leak
     if (hashtable[hash] == NULL){
         hashtable[hash] = u;
-        Serial.print("New user slot: "); 
-        Serial.println(hash); 
+        //Serial.print("New user slot: "); 
+        //Serial.println(hash); 
     } else {
         u->next = hashtable[hash];
         hashtable[hash] = u;
-        Serial.print("New user slot: "); 
-        Serial.println(hash); 
+        //Serial.print("New user slot: "); 
+        //Serial.println(hash); 
     }
   }
+
+  //Count users:
+  countUsers();
+
 }
 
 void loop() {
   
+  
+
   if ( ! mfrc522.PICC_IsNewCardPresent())		// si no hay una tarjeta presente
     return;						// retorna al loop esperando por una tarjeta
   
@@ -114,17 +118,21 @@ void loop() {
   }
 
   Serial.print("\t");   			// imprime un espacio de tabulacion 
+  
+
   search(LecturaUID);
 
   mfrc522.PICC_HaltA();  		// detiene comunicacion con tarjeta
   Serial.println("Swipe car");
+
   /*
-    acceso = search(UID);
-    if (acceso){
-      Serial.println("")
-    }
+  //Free all the memory
+  for (int j = 0; j < HASH_SIZE; j++)
+  {
+    freeMemory(hashtable[j]);
+  }
+  hashtable[i] = NULL
   */
-  
 }
 
 
@@ -163,10 +171,49 @@ void search(byte lectura[ARRAY_SIZE])
       Serial.println("Acceso concedido");
       Serial.print("Bienvenido: ");
       Serial.println(ptr->username);
+
+      //Bucket index
+      Serial.print("Found on: ");
+      Serial.println(hash);
+
       return;
     }
     ptr = ptr->next;
   }
   Serial.println("Acceso denegado");
   return;
+}
+
+void countUsers() 
+{
+  userInfo *p;
+  int users;
+
+  for (int i = 0; i < HASH_SIZE; i++){
+    users = 0;
+    p = hashtable[i];
+    while (p != NULL){
+      users++;
+      p= p->next;
+    }
+    Serial.print("Bucket: ");
+    Serial.print(i);
+    Serial.print("\t"); 
+    Serial.print("Users:");
+    Serial.println(users);
+  }
+  return;
+}
+
+void freeMemory(userInfo *bucket)
+{
+  userInfo *ptr;
+  ptr = bucket;
+
+  while(ptr != NULL){
+    
+    userInfo *next = ptr->next;
+    free(ptr);
+    ptr = next;
+  }
 }
