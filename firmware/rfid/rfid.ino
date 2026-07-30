@@ -15,14 +15,14 @@ byte LecturaUID[4]; 				// crea array para almacenar el UID leido
 
 //Protoypes:
 unsigned int hashing(byte key[ARRAY_SIZE]);
-void search(byte lectura[ARRAY_SIZE]);
+bool search(byte lectura[ARRAY_SIZE]);
 //void countUsers();
 
 //Users node structure
 typedef struct userInfo
 {
   byte UID[ARRAY_SIZE];
-  char username[10];
+  String username;
   char access_level[10];
   struct userInfo *next;
 } userInfo;
@@ -30,9 +30,6 @@ typedef struct userInfo
 userInfo users[4];
 userInfo *hashtable[HASH_SIZE];
 
-
-//Variables
-bool acceso;
 
 void setup() 
 {
@@ -52,10 +49,15 @@ void setup()
   memcpy(users[2].UID, key3, 4);
   memcpy(users[3].UID, key4, 4);
 
-  strcpy(users[0].username, "Pedro");
-  strcpy(users[1].username, "Jesus");
-  strcpy(users[2].username, "Karina");
-  strcpy(users[3].username, "Sr. Stark");
+  users[0].username = "Pedro";
+  users[1].username = "Jesus";
+  users[2].username = "Karina";
+  users[3].username = "Sr. Stark";
+
+  //strcpy(users[0].username, "Pedro");
+  //strcpy(users[1].username, "Jesus");
+  //strcpy(users[2].username, "Karina");
+  //strcpy(users[3].username, "Sr. Stark");
 
   int size = sizeof(users) / sizeof(users[0]);
   for (int i = 0; i < size; i++)
@@ -71,7 +73,8 @@ void setup()
     }
 
     memcpy((*u).UID, users[i].UID, 4);
-    strcpy((*u).username, users[i].username);
+    (*u).username = users[i].username;
+    //strcpy((*u).username, users[i].username);
     u->next = NULL;
 
     //TODO: Add prepeding and avoid memory leak
@@ -94,8 +97,6 @@ void setup()
 
 void loop() {
   
-  
-
   if ( ! mfrc522.PICC_IsNewCardPresent())		// si no hay una tarjeta presente
     return;						// retorna al loop esperando por una tarjeta
   
@@ -120,13 +121,24 @@ void loop() {
   Serial.print("\t");   			// imprime un espacio de tabulacion 
   
 
-  search(LecturaUID);
+  bool search_state = search(LecturaUID);
+  if (search_state)
+  {    
+      Serial.println("Acceso concedido");
+      Serial.print("Bienvenido: ");
+
+      //Bucket index
+      //Serial.print("Found on: ");
+      //Serial.println(hash);
+  }
 
   mfrc522.PICC_HaltA();  		// detiene comunicacion con tarjeta
   Serial.println("Swipe car");
 
+
+
   /*
-  //Free all the memory
+  Free all the memory
   for (int j = 0; j < HASH_SIZE; j++)
   {
     freeMemory(hashtable[j]);
@@ -152,36 +164,33 @@ unsigned int hashing(byte key[ARRAY_SIZE])
 
 
 //Search function
-void search(byte lectura[ARRAY_SIZE])
+bool search(byte lectura[ARRAY_SIZE])
 {
   // Hashing 
   int hash = hashing(lectura);
   userInfo *ptr;
   ptr = hashtable[hash];
+  bool flag = false;
 
   // Search in hash table
   while (ptr != NULL)
   {
-    for (int i = 0; i < mfrc522.uid.size; i++)
+    int size_UID = sizeof(ptr->UID);
+    if (ARRAY_SIZE == size_UID)
     {
-      if(lectura[i] != ptr->UID[i])
+      if (memcmp(lectura, ptr->UID, sizeof(ptr->UID)) == 0) //compare bytes
       {
-        break;
+        flag = true;
+        return flag;
       }
-      Serial.println("Acceso concedido");
-      Serial.print("Bienvenido: ");
-      Serial.println(ptr->username);
-
-      //Bucket index
-      Serial.print("Found on: ");
-      Serial.println(hash);
-
+    }
+    else {
+      Serial.println("Not the same size");
       return;
     }
     ptr = ptr->next;
   }
-  Serial.println("Acceso denegado");
-  return;
+  return flag; //false
 }
 
 void countUsers() 
