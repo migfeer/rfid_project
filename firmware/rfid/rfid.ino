@@ -4,19 +4,16 @@
 // Hash variables
 #define HASH_SIZE 8
 #define ARRAY_SIZE 4
-#include <stdio.h>  
-#include <stdlib.h>
 
-#define RST_PIN  9			// constante para referenciar pin de reset
-#define SS_PIN  10			// constante para referenciar pin de slave select
+#define RST_PIN  9			// pin de reset
+#define SS_PIN  10			// pin de slave select
 
-MFRC522 mfrc522(SS_PIN, RST_PIN);	// crea objeto mfrc522 enviando pines de slave select y reset
-byte LecturaUID[4]; 				// crea array para almacenar el UID leido
+MFRC522 mfrc522(SS_PIN, RST_PIN);	// 
+byte LecturaUID[4]; 				// UID read
 
 //Protoypes:
 unsigned int hashing(byte key[ARRAY_SIZE]);
 bool search(byte lectura[ARRAY_SIZE]);
-//void countUsers();
 
 //Users node structure
 typedef struct userInfo
@@ -54,11 +51,6 @@ void setup()
   users[2].username = "Karina";
   users[3].username = "Sr. Stark";
 
-  //strcpy(users[0].username, "Pedro");
-  //strcpy(users[1].username, "Jesus");
-  //strcpy(users[2].username, "Karina");
-  //strcpy(users[3].username, "Sr. Stark");
-
   int size = sizeof(users) / sizeof(users[0]);
   for (int i = 0; i < size; i++)
   {
@@ -68,30 +60,22 @@ void setup()
     //Create a node
     userInfo *u = (userInfo *)malloc(sizeof(userInfo)); //Type casting - malloc retorna un generic pointer
     if (u == NULL){
-      Serial.println("Can't assing memory!"); 
+      Serial.println("Can't assing memory!");
+      free(u);
       return;
     }
 
     memcpy((*u).UID, users[i].UID, 4);
     (*u).username = users[i].username;
-    //strcpy((*u).username, users[i].username);
     u->next = NULL;
 
-    //TODO: Add prepeding and avoid memory leak
     if (hashtable[hash] == NULL){
         hashtable[hash] = u;
-        //Serial.print("New user slot: "); 
-        //Serial.println(hash); 
     } else {
         u->next = hashtable[hash];
         hashtable[hash] = u;
-        //Serial.print("New user slot: "); 
-        //Serial.println(hash); 
     }
   }
-
-  //Count users:
-  countUsers();
 
 }
 
@@ -186,7 +170,7 @@ bool search(byte lectura[ARRAY_SIZE])
     }
     else {
       Serial.println("Not the same size");
-      return;
+      return flag;
     }
     ptr = ptr->next;
   }
@@ -212,17 +196,4 @@ void countUsers()
     Serial.println(users);
   }
   return;
-}
-
-void freeMemory(userInfo *bucket)
-{
-  userInfo *ptr;
-  ptr = bucket;
-
-  while(ptr != NULL){
-    
-    userInfo *next = ptr->next;
-    free(ptr);
-    ptr = next;
-  }
 }
